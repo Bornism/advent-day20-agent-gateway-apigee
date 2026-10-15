@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-Return-Tools-List">
+    <Set>
+        <Payload contentType="application/json">
+        {
+          "jsonrpc": "2.0",
+          "id": 1,
+          "result": {
+            "tools": [
+              {
+                "name": "lookup_customer_account",
+                "description": "Governed enterprise tool to fetch verified customer account data.",
+                "inputSchema": {
+                  "type": "object",
+                  "properties": {
+                    "customer_id": {"type": "string"}
+                  },
+                  "required": ["customer_id"]
+                }
+              }
+            ]
+          }
+        }
+        </Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

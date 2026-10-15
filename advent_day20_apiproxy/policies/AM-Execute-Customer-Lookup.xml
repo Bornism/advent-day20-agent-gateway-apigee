@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage continueOnError="false" enabled="true" name="AM-Execute-Customer-Lookup">
+    <Set>
+        <Payload contentType="application/json">
+        {
+          "jsonrpc": "2.0",
+          "id": 2,
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"customer_id\": \"CUST-9921\", \"status\": \"ACTIVE\", \"tier\": \"PLATINUM\", \"verified_by\": \"APIGEE_PRE_PROD\"}"
+              }
+            ]
+          }
+        }
+        </Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="false" transport="http" type="response"/>
+</AssignMessage>

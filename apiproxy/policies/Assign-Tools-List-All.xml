@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<AssignMessage async="false" continueOnError="false" enabled="true" name="Assign-Tools-List-All">
+    <Set>
+        <Headers>
+            <Header name="Content-Type">application/json</Header>
+            <Header name="X-MCP-Context-Filtered">false</Header>
+            <Header name="X-MCP-Original-Tool-Count">7</Header>
+            <Header name="X-MCP-Returned-Tool-Count">7</Header>
+        </Headers>
+        <Payload contentType="application/json">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "tools": [
+      {
+        "name": "procore_list_rfis",
+        "description": "List Requests For Information (RFIs) from Procore for a project.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}}, "required": ["project_id"]}
+      },
+      {
+        "name": "procore_get_submittal",
+        "description": "Retrieve engineering submittal records from Procore.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}, "submittal_id": {"type": "string"}}, "required": ["project_id", "submittal_id"]}
+      },
+      {
+        "name": "procore_create_daily_log",
+        "description": "Create an automated daily operational log in Procore.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}, "summary": {"type": "string"}}, "required": ["project_id", "summary"]}
+      },
+      {
+        "name": "gdrive_search_files",
+        "description": "Search Google Drive for drawings, BIM models, and specs.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}, "query": {"type": "string"}}, "required": ["project_id", "query"]}
+      },
+      {
+        "name": "gdrive_export_spec_sheet",
+        "description": "Export engineering specification text from Google Drive.",
+        "inputSchema": {"type": "object", "properties": {"file_id": {"type": "string"}}, "required": ["file_id"]}
+      },
+      {
+        "name": "box_get_inspection_report",
+        "description": "Fetch quality control inspection packages stored in Box.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}, "package_id": {"type": "string"}}, "required": ["project_id", "package_id"]}
+      },
+      {
+        "name": "box_upload_asbuilt_markup",
+        "description": "Upload field engineer as-built markups into Box archives.",
+        "inputSchema": {"type": "object", "properties": {"project_id": {"type": "string"}, "file_name": {"type": "string"}}, "required": ["project_id", "file_name"]}
+      }
+    ]
+  }
+}</Payload>
+    </Set>
+    <IgnoreUnresolvedVariables>true</IgnoreUnresolvedVariables>
+    <AssignTo createNew="true" transport="http" type="response"/>
+</AssignMessage>
