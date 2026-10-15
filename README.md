@@ -56,6 +56,8 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 1. Drop the proxy bundle straight into your existing Apigee environment.
 2. It translates standard Model Context Protocol JSON-RPC requests (`tools/list` and `tools/call`) directly into your backend APIs.
 3. It puts Apigee's built-in **Spike Arrest** policy to work as a circuit breaker. If an agent hallucinates, loops recursively, or starts rapid-firing requests, Apigee cuts it off with an `HTTP 429` before your SAP, Salesforce, or BigQuery systems feel any pain.
+4. It eliminates **Context Bloat**: Instead of dumping hundreds of raw database fields into an LLM context window, Apigee shapes and mediates payloads so the agent only sees what it needs to reason effectively.
+5. It sets up enterprise AI governance: You can layer on **Dynamic Model Routing** (routing prompts across Gemini and specialized models by cost/latency) and **LLMTokenQuota** to meter token spend by department.
 
 ---
 
