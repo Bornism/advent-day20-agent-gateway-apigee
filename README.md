@@ -3,7 +3,7 @@
 **Advent of Agents  -  Season 3 (October 2026)**  
 **Authors:** Christopher Duncan & Elliott Abraham  
 **Tags:** `Agent Gateway`, `Apigee`, `MCP`, `Security`, `API Management`  
-**Video Demo:** [Watch the Day 20 Video Demo (Google Drive)](https://drive.google.com/file/d/1A-TeVTkj-GlM2brbc9eoh3Kjj2XcQTJ0/view?usp=sharing&resourcekey=0-UU0fenROwxHWsL39i1393w)
+**Video Demo:** [Watch the Day 20 Video Demo on YouTube](https://youtu.be/ikqlZLLYrLA)
 
 ---
 
