@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <!--
-  Optional Policy: LLM Token Quota / Rate Limiting
-  Limits agent tool calls based on estimated token consumption or request volume
-  to protect backend enterprise capacity and downstream LLM budgets.
+  Optional Policy: Apigee LLMTokenQuota
+  Enforces token-based rate limiting on LLM responses and agent tool executions.
+  Tracks total token consumption per agent identity to protect downstream GenAI quotas.
 -->
-<Quota continueOnError="false" enabled="true" name="LLM-Token-Quota" type="calendar">
+<LLMTokenQuota continueOnError="false" enabled="true" name="LLM-Token-Quota" type="calendar">
     <Identifier ref="request.header.X-Agent-Identity"/>
     <Interval>1</Interval>
     <TimeUnit>minute</TimeUnit>
-    <Allow count="10000" countRef="llm_token_limit"/>
-    <!-- Dynamically weighted by token count extracted from tool payload or estimated size -->
-    <Weight ref="estimated_token_weight"/>
+    <Allow count="100000"/>
+    <LLMTokenUsageSource>{jsonPath('$.usageMetadata.totalTokenCount',response.content,true)}</LLMTokenUsageSource>
+    <LLMModelSource>{jsonPath('$.model',response.content,true)}</LLMModelSource>
     <Distributed>true</Distributed>
     <Synchronous>true</Synchronous>
-</Quota>
+</LLMTokenQuota>
