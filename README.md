@@ -163,6 +163,10 @@ That's how you keep a looping or hallucinating agent from bringing down your bac
 
 ### Deploying Both Gateways to Your Own GCP Project
 
+> **A quick heads-up on Apigee provisioning:**  
+> If you already have an active Apigee organization, importing and deploying this proxy takes about 30 seconds.  
+> If you are setting up Apigee for the first time in a brand-new GCP project, initial runtime provisioning typically takes **30 to 45 minutes** while Google Cloud establishes VPC peering and runtime infrastructure. You can follow the [Official Apigee Provisioning Guide](https://cloud.google.com/apigee/docs/api-platform/get-started/provisioning-overview) in the background, or test the Kata commands against an existing gateway endpoint right away!
+
 If you want to spin up both gateways in your own Google Cloud project:
 
 #### 1. Import and Deploy the Apigee MCP Proxy
