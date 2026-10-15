@@ -61,16 +61,9 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 
 ### What's in This Repo
 
-* `advent-day20-mcp-proxy.zip`: Pre-built Apigee proxy bundle ready to import and deploy.
-* `advent_day20_apiproxy/`: Unpacked XML proxy definition and policy files:
-  * `SA-SpikeArrest.xml`: Throttles burst calls (set to 10 requests per minute for this demo).
-  * `Extract-MCP-Method.xml`: Pulls out the JSON-RPC method (`tools/list` vs. `tools/call`).
-  * `AM-Return-Tools-List.xml`: Returns the MCP tool schema.
-  * `AM-Execute-Customer-Lookup.xml`: Returns the customer account record.
-  * `policies/optional_llm_policies/`: Modular policies you can drop in for LLM Token Quotas, Response Caching, Context Trimming, and API Key checks.
-* `demo_runner.py`: Python test runner that checks tool discovery, invokes the tool, and triggers Spike Arrest with a burst test.
-* `deploy_to_apigee.sh`: Bash script to deploy the Apigee MCP Proxy using Apigee Management APIs.
-* `deploy_agent_gateway.sh`: Bash script to deploy Google Cloud Agent Gateway and register Apigee in Agent Registry.
+* `advent-day20-mcp-proxy.zip`: Pre-built Apigee starter bundle that exposes enterprise services as an MCP tool and includes Spike Arrest runaway loop protection.
+* `assets/architecture_flow.png`: Official architecture diagram showing how Agent Gateway and Apigee fit together.
+* `demo_runner.py`: Simple Python test runner to verify discovery (`tools/list`), tool calls (`tools/call`), and Spike Arrest (`429`).
 * `.env.example`: Starter config for your Apigee host and project ID.
 
 ---
@@ -170,43 +163,41 @@ That's how you keep a looping or hallucinating agent from bringing down your bac
 
 ### Deploying Both Gateways to Your Own GCP Project
 
-You can deploy the complete two-gateway architecture in two quick steps:
+If you want to spin up both gateways in your own Google Cloud project:
 
-#### Step 1: Deploy Apigee (Enterprise Tool Provider)
-Import and deploy the starter proxy bundle to your Apigee environment:
-
-```bash
-export PROJECT_ID="<your-gcp-project-id>"
-export ENV_NAME="<your-apigee-env>"  # e.g., dev, eval, or prod
-
-chmod +x deploy_to_apigee.sh
-./deploy_to_apigee.sh
-```
-
-#### Step 2: Deploy Agent Gateway (Egress Security Boundary)
-Create the outbound zero-trust gateway and register the Apigee MCP endpoint in Agent Registry:
+#### 1. Import and Deploy the Apigee MCP Proxy
+Upload the bundle directly to your Apigee organization:
 
 ```bash
-export PROJECT_ID="<your-gcp-project-id>"
-export REGION="us-central1"
-export APIGEE_HOST="<your-apigee-host-or-ip>"
+TOKEN=$(gcloud auth print-access-token)
 
-chmod +x deploy_agent_gateway.sh
-./deploy_agent_gateway.sh
+# Import bundle
+curl -X POST -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/octet-stream" \
+  --data-binary "@advent-day20-mcp-proxy.zip" \
+  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/apis?action=import&name=advent-day20-mcp-proxy"
+
+# Deploy revision 1 to your environment
+curl -X POST -H "Authorization: Bearer ${TOKEN}" \
+  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/environments/${ENV_NAME}/apis/advent-day20-mcp-proxy/revisions/1/deployments?override=true"
 ```
 
-This enforces deny-by-default rules so your agents can only talk to registered, approved enterprise tools.
+#### 2. Create the Agent Gateway Egress Boundary
+Create your outbound gateway and register Apigee in Agent Registry:
 
----
+```bash
+# Create the Egress Agent Gateway
+gcloud alpha network-services agent-gateways create advent-egress-gw \
+    --project="${PROJECT_ID}" \
+    --location="us-central1" \
+    --type="AGENT_TO_ANYWHERE" \
+    --protocol="MCP"
 
-### Optional Starter Policies for LLM Governance
-
-Inside `advent_day20_apiproxy/policies/optional_llm_policies/`, we included 4 extra policies you can plug into your proxy as your setup grows:
-
-* **`LLM-Token-Quota.xml`:** Tracks token counts using Apigee's native `LLMTokenQuota` policy to enforce Tokens Per Minute (TPM) limits on agents.
-* **`RC-Tool-Response-Cache.xml`:** Caches tool lookups right at the Apigee edge so repeated queries don't add extra latency or backend load.
-* **`EV-Trim-Context-Payload.xml`:** Pulls only the required fields out of bloated enterprise payloads before handing data back to the LLM.
-* **`VAK-Verify-API-Key.xml`:** Enforces standard API key authentication for client apps calling the tool.
+# Register Apigee as an approved tool in Agent Registry
+gcloud alpha agent-registry services create apigee-enterprise-mcp \
+    --project="${PROJECT_ID}" \
+    --location="global" \
+    --endpoint="https://${APIGEE_HOST}/v1/mcp"
+```
 
 ---
 

@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!--
-  Optional Policy: Verify API Key
-  Validates that incoming MCP tool invocations originate from an authorized client application
-  or registered agent runner product in Apigee.
--->
-<VerifyAPIKey continueOnError="false" enabled="true" name="VAK-Verify-API-Key">
-    <APIKey ref="request.header.x-api-key"/>
-</VerifyAPIKey>

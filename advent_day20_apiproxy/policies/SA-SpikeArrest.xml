@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<SpikeArrest continueOnError="false" enabled="true" name="SA-SpikeArrest">
-    <Rate>10pm</Rate>
-    <UseEffectiveParamValues>true</UseEffectiveParamValues>
-</SpikeArrest>
