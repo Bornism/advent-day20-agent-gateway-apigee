@@ -69,7 +69,8 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
   * `AM-Execute-Customer-Lookup.xml`: Returns the customer account record.
   * `policies/optional_llm_policies/`: Modular policies you can drop in for LLM Token Quotas, Response Caching, Context Trimming, and API Key checks.
 * `demo_runner.py`: Python test runner that checks tool discovery, invokes the tool, and triggers Spike Arrest with a burst test.
-* `deploy_to_apigee.sh`: Quick bash script to deploy the bundle using Apigee Management APIs.
+* `deploy_to_apigee.sh`: Bash script to deploy the Apigee MCP Proxy using Apigee Management APIs.
+* `deploy_agent_gateway.sh`: Bash script to deploy Google Cloud Agent Gateway and register Apigee in Agent Registry.
 * `.env.example`: Starter config for your Apigee host and project ID.
 
 ---
@@ -167,9 +168,12 @@ That's how you keep a looping or hallucinating agent from bringing down your bac
 
 ---
 
-### Deploying the Proxy to Your Own GCP Project
+### Deploying Both Gateways to Your Own GCP Project
 
-If you want to deploy this starter proxy to your own Apigee org:
+You can deploy the complete two-gateway architecture in two quick steps:
+
+#### Step 1: Deploy Apigee (Enterprise Tool Provider)
+Import and deploy the starter proxy bundle to your Apigee environment:
 
 ```bash
 export PROJECT_ID="<your-gcp-project-id>"
@@ -178,6 +182,20 @@ export ENV_NAME="<your-apigee-env>"  # e.g., dev, eval, or prod
 chmod +x deploy_to_apigee.sh
 ./deploy_to_apigee.sh
 ```
+
+#### Step 2: Deploy Agent Gateway (Egress Security Boundary)
+Create the outbound zero-trust gateway and register the Apigee MCP endpoint in Agent Registry:
+
+```bash
+export PROJECT_ID="<your-gcp-project-id>"
+export REGION="us-central1"
+export APIGEE_HOST="<your-apigee-host-or-ip>"
+
+chmod +x deploy_agent_gateway.sh
+./deploy_agent_gateway.sh
+```
+
+This enforces deny-by-default rules so your agents can only talk to registered, approved enterprise tools.
 
 ---
 

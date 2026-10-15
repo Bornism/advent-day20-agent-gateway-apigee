@@ -33,6 +33,7 @@ It addresses the fundamental enterprise question: *"We already run all corporate
   - `EV-Trim-Context-Payload.xml`: Context window optimization and payload minimization.
   - `VAK-Verify-API-Key.xml`: API key verification for client agents.
 * `deploy_to_apigee.sh`: Parameterized Bash deployment script utilizing Apigee Management APIs.
+* `deploy_agent_gateway.sh`: Bash deployment script creating the Google Cloud Agent Gateway egress perimeter and registering Apigee in Agent Registry.
 * `demo_runner.py`: Validated Python test script asserting `tools/list` (200 OK), `tools/call` (200 OK), and `SA-SpikeArrest` throttling (429 SpikeArrestViolation).
 
 ### Live Validation Status
