@@ -20,7 +20,7 @@ Here's the deal: **they handle two completely different traffic patterns.**
 
 If you only run Apigee, your agent's outbound calls are flying blind with zero egress guardrails. If you only run Agent Gateway, your internal databases have no protection against runaway agent loops or context bloat. 
 
-Using them together gives you end-to-end defense: Agent Gateway controls what the agent is allowed to call, and Apigee controls how enterprise tools and backends are consumed.
+Using them together gives you end-to-end defense: Agent Gateway controls what the agent is allowed to call, and Apigee controls how enterprise tools and backends are consumed. This is truly a better together tale of two gateways.
 
 ---
 
