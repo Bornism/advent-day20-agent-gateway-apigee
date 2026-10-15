@@ -37,7 +37,7 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 
 ### Ingress vs. Egress at a Glance
 
-| Architectural Layer | Apigee API Gateway | Google Cloud Agent Gateway |
+| Architectural Layer | Apigee A(P)I Gateway | Google Cloud Agent Gateway |
 | :--- | :--- | :--- |
 | **Where it sits** | In front of internal enterprise backends | Right at the agent runtime boundary (VPC egress) |
 | **Traffic direction** | Ingress (traffic coming into your APIs) | Egress (calls initiated by your agents) |
