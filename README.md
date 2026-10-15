@@ -16,7 +16,7 @@ When teams start building production AI agents on Google Cloud, we almost always
 Here's the deal: **they handle two completely different traffic patterns.**
 
 * **Apigee is for Ingress (Inbound / North-South):** It guards your internal databases, ERPs, and microservices against incoming callers. It checks API keys, enforces rate limits, transforms legacy payloads, and keeps bad traffic off your servers.
-* **Agent Gateway is for Egress (Outbound):** AI agents don't just sit there waiting for web traffic. They actively call external tools, third-party APIs, and MCP servers on their own. Agent Gateway sits right next to the agent runtime (Vertex AI, Cloud Run, GKE) to enforce a deny-by-default firewall on outbound tool calls, verify the agent's cryptographic SPIFFE identity, and run Model Armor on prompts before an agent reaches out to the world.
+* **Agent Gateway is for Egress (Outbound):** AI agents don't just sit there waiting for web traffic. They actively call external tools, third-party APIs, and MCP servers on their own. Agent Gateway sits right next to the agent runtime (Google Cloud Agent Platform, Cloud Run, GKE) to enforce a deny-by-default firewall on outbound tool calls, verify the agent's cryptographic SPIFFE identity, and run Model Armor on prompts before an agent reaches out to the world.
 
 If you only run Apigee, your agent's outbound calls are flying blind with zero egress guardrails. If you only run Agent Gateway, your internal databases have no protection against runaway agent loops or context bloat. 
 
@@ -53,7 +53,7 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 ![Architecture Flow](assets/architecture_flow.png)
 
 1. **Client-to-Agent Ingress:** Incoming user requests hit the front-door Agent Gateway.
-2. **Autonomous Agent Runtime:** Gemini agents in Vertex AI or Cloud Run pick tools dynamically based on user prompts.
+2. **Autonomous Agent Runtime:** Gemini agents running on Google Cloud Agent Platform (or Cloud Run / GKE) pick tools dynamically based on user prompts.
 3. **Agent-to-Any Egress Boundary:** The egress Agent Gateway intercepts outbound MCP tool calls, validates the agent's SPIFFE identity, checks the Agent Registry allowlist, and runs Model Armor prompt screening.
 4. **Enterprise Tool Ingress (Apigee):** Permitted calls cross the network into Apigee, which handles TLS, checks client API keys, enforces Spike Arrest to kill recursive loops, and mediates payloads to your backends (SAP, Salesforce, BigQuery).
 
