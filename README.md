@@ -72,9 +72,12 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 ### Hands-On Kata: Running the Demo
 
 #### 1. Setup your environment
-Copy `.env.example` over to `.env` (or set environment variables in your terminal):
+Clone the repository and copy `.env.example` over to `.env`:
 
 ```bash
+git clone https://github.com/Bornism/advent-day20-agent-gateway-apigee.git
+cd advent-day20-agent-gateway-apigee
+
 export APIGEE_HOST="<your-apigee-host-or-ip>"
 # or
 export APIGEE_MCP_URL="https://<your-apigee-host-or-ip>/v1/mcp"
