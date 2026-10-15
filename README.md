@@ -66,7 +66,7 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 * `agent_gateway_policy.json`: Declarative IAM Unified Access Policy enforcing deny-by-default egress and allowlisting Apigee.
 * `advent-day20-mcp-proxy.zip`: Pre-built Apigee starter bundle that exposes enterprise services as an MCP tool and includes Spike Arrest runaway loop protection.
 * `assets/architecture_flow.png`: Official architecture diagram showing how Agent Gateway and Apigee fit together.
-* `demo_runner.py`: Python test runner verifying the Agent Gateway policy, MCP discovery (`tools/list`), tool calls (`tools/call`), and Spike Arrest (`429`).
+* `assets/slide1_thumbnail.png`: High-resolution 16:9 video thumbnail from presentation Slide 1.
 * `.env.example`: Starter config for your Apigee host and project ID.
 
 ---
@@ -238,21 +238,27 @@ Apigee sends back the customer record:
 ```
 
 ##### 4. Test Runaway Loop Protection (Spike Arrest)
-Run the Python test runner to verify everything across both gateways, including the Agent Gateway policy check and rapid burst calls:
+Simulate a looping or hallucinating agent sending rapid burst requests to verify that Apigee's **Spike Arrest** policy halts the traffic:
 
 ```bash
-python3 demo_runner.py
+for i in {1..5}; do
+  curl -s -o /dev/null -w "Request $i: HTTP %{http_code}\n" -X POST https://${APIGEE_HOST}/v1/mcp \
+    -H "Content-Type: application/json" \
+    -d '{"jsonrpc": "2.0", "id": '$i', "method": "tools/call", "params": {"name": "lookup_customer_account", "arguments": {"customer_id": "CUST-9921"}}}'
+done
 ```
 
 Since the proxy enforces a `10pm` Spike Arrest policy (1 request every 6 seconds), rapid burst calls immediately trigger `HTTP 429 Too Many Requests`:
 
 ```text
 Request 1: HTTP 200
-Request 2: HTTP 429 -> SpikeArrestViolation intercepted by Apigee!
-Request 3: HTTP 429 -> SpikeArrestViolation intercepted by Apigee!
+Request 2: HTTP 200
+Request 3: HTTP 429
+Request 4: HTTP 429
+Request 5: HTTP 429
 ```
 
-That's how you keep a looping or hallucinating agent from bringing down your backend databases.
+That's how you keep a looping or hallucinating agent from overwhelming your backend databases in real time.
 
 ---
 
