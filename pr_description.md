@@ -19,7 +19,7 @@
 **Presenters:** Christopher Duncan (@duncanchris) & Elliott Abraham (@elliottabraham)
 
 ### Summary
-This PR adds the Day 20 kata, architecture documentation, deployable Apigee MCP Proxy starter bundle, automated demo test runner, and reference ADK agent.
+This PR adds the Day 20 kata, architecture documentation, deployable Apigee MCP Proxy starter bundle, and automated demo test runner.
 
 It addresses the fundamental enterprise question: *"We already run all corporate traffic through Apigee. Why do we need Agent Gateway?"* by delineating North-South enterprise ingress from autonomous agent outbound egress, providing complete defense-in-depth.
 
@@ -34,7 +34,6 @@ It addresses the fundamental enterprise question: *"We already run all corporate
   - `VAK-Verify-API-Key.xml`: API key verification for client agents.
 * `deploy_to_apigee.sh`: Parameterized Bash deployment script utilizing Apigee Management APIs.
 * `demo_runner.py`: Validated Python test script asserting `tools/list` (200 OK), `tools/call` (200 OK), and `SA-SpikeArrest` throttling (429 SpikeArrestViolation).
-* `adk_agent.py`: Reference Google Agent Development Kit (ADK) agent configured with the governed tool and SPIFFE identity headers.
 
 ### Live Validation Status
 - **Deployed Starter Proxy:** `advent-day20-mcp-proxy`

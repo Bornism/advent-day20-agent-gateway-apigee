@@ -3,7 +3,7 @@
 > **Advent of Agents (Season 3)** · **Day 20**  
 > **Authors:** Christopher Duncan & Elliott Abraham  
 > **Tags:** `AGENT GATEWAY` `APIGEE` `MCP` `SECURITY` `DEFENSE IN DEPTH`  
-> **Starter Kit:** Production-ready Apigee MCP Proxy & ADK Agent  
+> **Starter Kit:** Production-ready Apigee MCP Proxy & Test Runner  
 > **Demo Video:** *[5-Minute Demo Video Recording Scheduled - 9:00 AM]*
 
 ---
@@ -52,8 +52,8 @@ If your organization already standardizes on Google Cloud Apigee:
 |                       AUTONOMOUS AGENT RUNTIME BOUNDARY                       |
 |                                                                               |
 |  +--------------------+             +--------------------------------------+  |
-|  |  AI Agent / ADK    |             |        AGENT GATEWAY (Egress)        |  |
-|  | (Gemini Enterprise)|  MCP Call   |                                      |  |
+|  |  AI Agent Runtime  |             |        AGENT GATEWAY (Egress)        |  |
+|  | (Gemini / Vertex)  |  MCP Call   |                                      |  |
 |  |                    +------------>|  [1] Validate SPIFFE Identity        |  |
 |  | [SPIFFE ID]        |             |  [2] Check Agent Registry Allowlist  |  |
 |  +--------------------+             |  [3] Service Ext: Model Armor Scan   |  |
@@ -87,7 +87,7 @@ If your organization already standardizes on Google Cloud Apigee:
 
 * `README.md`: Architecture guide, decision matrix, and deployment instructions.
 * `.env.example`: Environment variable template for configuring target Apigee endpoints and project IDs.
-* `advent-day20-mcp-proxy.zip`: Pre-built Apigee API Proxy bundle implementing JSON-RPC MCP discovery and execution.
+* `advent-day20-mcp-proxy.zip`: Pre-packaged Apigee API Proxy starter bundle implementing JSON-RPC MCP discovery and execution.
 * `advent_day20_apiproxy/`: Source XML configuration and policies:
   * `SA-SpikeArrest.xml`: Halts runaway agent recursion with HTTP 429.
   * `Extract-MCP-Method.xml`: Extracts JSON-RPC method routing.
@@ -96,7 +96,6 @@ If your organization already standardizes on Google Cloud Apigee:
   * `policies/optional_llm_policies/`: Advanced modular policies for LLM token quotas, response caching, context trimming, and API keys.
 * `deploy_to_apigee.sh`: One-click Bash deployment script utilizing Apigee Management APIs.
 * `demo_runner.py`: Python test runner validating discovery, execution, and Spike Arrest throttling.
-* `adk_agent.py`: Reference Google Agent Development Kit (ADK) agent configured with the governed MCP tool.
 
 ---
 
