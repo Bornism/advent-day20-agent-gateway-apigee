@@ -48,43 +48,14 @@ You can use the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) as a **
 
 ---
 
-### How the Request Flows
+### Architecture Flow
 
 ![Architecture Flow](assets/architecture_flow.png)
 
-```
-+-------------------------------------------------------------------------------+
-|                       AUTONOMOUS AGENT RUNTIME BOUNDARY                       |
-|                                                                               |
-|  +--------------------+             +--------------------------------------+  |
-|  |   Gemini Agent     |             |        AGENT GATEWAY (Egress)        |  |
-|  | (Vertex / ADK)     |  MCP Call   |                                      |  |
-|  |                    +------------>|  [1] Validate SPIFFE workload ID     |  |
-|  | [SPIFFE ID]        |             |  [2] Check Agent Registry allowlist  |  |
-|  +--------------------+             |  [3] Scan prompt with Model Armor    |  |
-|                                     |  [4] Enforce deny-by-default rule    |  |
-|                                     +-------------------+------------------+  |
-+---------------------------------------------------------|---------------------+
-                                                          | Allowed tool call
-                                                          v (HTTPS / mTLS)
-+-------------------------------------------------------------------------------+
-|                         ENTERPRISE API INFRASTRUCTURE                         |
-|                                                                               |
-|  +-------------------------------------------------------------------------+  |
-|  |                         APIGEE API GATEWAY                              |  |
-|  |                                                                         |  |
-|  |  [A] Ingress TLS termination                                            |  |
-|  |  [B] Verify API Key & calling app entitlements                          |  |
-|  |  [C] Spike Arrest: halt recursive agent loops (HTTP 429)                |  |
-|  |  [D] ExtractVariables: strip heavy 50-field payloads to clean JSON      |  |
-|  +-------------------------------------+-----------------------------------+  |
-+----------------------------------------|--------------------------------------+
-                                         | Clean tool invocation
-                                         v
-               +---------------------------------------------------+
-               |  Enterprise Backends: SAP / Salesforce / BigQuery |
-               +---------------------------------------------------+
-```
+1. **Client-to-Agent Ingress:** External requests enter through the front-door Agent Gateway.
+2. **Autonomous Agent Runtime:** Gemini agents in Vertex AI or Cloud Run evaluate tasks and invoke tools dynamically.
+3. **Agent-to-Any Egress Boundary:** The egress Agent Gateway intercepts outbound MCP tool calls, validates the agent's cryptographic SPIFFE identity, verifies destinations against the Agent Registry allowlist, and scans payloads with Model Armor.
+4. **Enterprise Tool Ingress (Apigee):** Authorized calls route across the cloud network into Apigee, which terminates TLS, verifies client API keys, enforces Spike Arrest to halt recursive agent loops, and mediates payloads to backend enterprise systems (SAP, Salesforce, BigQuery).
 
 ---
 
