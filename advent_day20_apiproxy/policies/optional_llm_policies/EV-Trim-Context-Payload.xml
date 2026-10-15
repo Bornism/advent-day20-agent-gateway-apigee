@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!--
+  Optional Policy: Context Optimization & Response Trimming
+  Strips large 50+ field enterprise ERP/database payloads down to only the essential
+  fields required by the LLM, preserving agent context window capacity and reducing token costs.
+-->
+<ExtractVariables continueOnError="false" enabled="true" name="EV-Trim-Context-Payload">
+    <Source>response</Source>
+    <VariablePrefix>backend_data</VariablePrefix>
+    <JSONPayload>
+        <Variable name="id">
+            <JSONPath>$.account.id</JSONPath>
+        </Variable>
+        <Variable name="status">
+            <JSONPath>$.account.status</JSONPath>
+        </Variable>
+        <Variable name="tier">
+            <JSONPath>$.account.tier</JSONPath>
+        </Variable>
+    </JSONPayload>
+</ExtractVariables>

@@ -2,16 +2,25 @@
 #
 # Advent of Agents - Day 20: Deploy Apigee MCP Proxy
 #
-# Deploys the advent-day20-mcp-proxy bundle to Apigee using Apigee Management APIs
-# or apigeecli.
+# Deploys the advent-day20-mcp-proxy starter bundle to your Apigee organization
+# using Apigee Management APIs.
 #
 
 set -euo pipefail
 
-PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || echo 'turnkey-alpha-361718')}"
-ENV_NAME="${ENV_NAME:-pre-prod}"
+PROJECT_ID="${PROJECT_ID:-$(gcloud config get-value project 2>/dev/null || echo '')}"
+ENV_NAME="${ENV_NAME:-eval}"
 PROXY_NAME="advent-day20-mcp-proxy"
 BUNDLE_ZIP="advent-day20-mcp-proxy.zip"
+
+if [[ -z "${PROJECT_ID}" ]]; then
+  echo "Error: PROJECT_ID is not set."
+  echo "Usage:"
+  echo "  export PROJECT_ID='<your-google-cloud-project-id>'"
+  echo "  export ENV_NAME='<your-apigee-environment>'  # Defaults to 'eval'"
+  echo "  ./deploy_to_apigee.sh"
+  exit 1
+fi
 
 echo "=========================================================="
 echo "Advent of Agents Day 20: Deploying Apigee MCP Proxy"

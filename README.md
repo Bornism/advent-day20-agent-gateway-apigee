@@ -3,6 +3,7 @@
 > **Advent of Agents (Season 3)** · **Day 20**  
 > **Authors:** Christopher Duncan & Elliott Abraham  
 > **Tags:** `AGENT GATEWAY` `APIGEE` `MCP` `SECURITY` `DEFENSE IN DEPTH`  
+> **Starter Kit:** Production-ready Apigee MCP Proxy & ADK Agent  
 > **Demo Video:** *[5-Minute Demo Video Recording Scheduled - 9:00 AM]*
 
 ---
@@ -25,8 +26,8 @@ Combining both delivers complete **Defense-in-Depth**.
 
 If your organization already standardizes on Google Cloud Apigee:
 
-1. **Keep Your Existing API Catalog**: You do not need to rewrite your backend services or rip-and-replace existing Apigee proxies.
-2. **Use This Proxy as a Starter Kit**: You can optionally deploy the included `advent-day20-mcp-proxy.zip` bundle to instantly expose legacy enterprise REST, SOAP, or database backends as standardized, discoverable Model Context Protocol (MCP) tools.
+1. **Keep Your Existing API Catalog**: You do not need to rewrite your backend services or replace existing Apigee proxies.
+2. **Use This Proxy as a Starter Kit**: You can optionally deploy the included `advent-day20-mcp-proxy.zip` starter bundle to instantly expose legacy enterprise REST, SOAP, or database backends as standardized, discoverable Model Context Protocol (MCP) tools.
 3. **Add Agent Gateway for Outbound Zero-Trust**: Place Agent Gateway in front of your autonomous agent execution environments (Vertex AI Reasoning Engines, Cloud Run, GKE) to enforce deny-by-default egress, SPIFFE workload attestation, and Model Armor safety filters before outbound agent requests reach Apigee.
 
 ---
@@ -82,24 +83,38 @@ If your organization already standardizes on Google Cloud Apigee:
 
 ---
 
-## Kata Package Contents
+## Repository Contents
 
-* `README.md`: Architectural documentation, decision tree, and setup guide.
-* `advent-day20-mcp-proxy.zip`: Complete Apigee API Proxy bundle configured for MCP discovery and tools execution.
-* `advent_day20_apiproxy/`: Source XML configuration and policies (`SA-SpikeArrest`, `Extract-MCP-Method`, `AM-Return-Tools-List`, `AM-Execute-Customer-Lookup`).
-* `deploy_to_apigee.sh`: Automated deployment script to import and deploy the proxy bundle to any Apigee organization.
-* `demo_runner.py`: End-to-end Python test script demonstrating discovery (`tools/list`), execution (`tools/call`), and Spike Arrest governance.
-* `adk_agent.py`: Reference Google Agent Development Kit (ADK) agent configured with the governed MCP tool and SPIFFE identity headers.
+* `README.md`: Architecture guide, decision matrix, and deployment instructions.
+* `.env.example`: Environment variable template for configuring target Apigee endpoints and project IDs.
+* `advent-day20-mcp-proxy.zip`: Pre-built Apigee API Proxy bundle implementing JSON-RPC MCP discovery and execution.
+* `advent_day20_apiproxy/`: Source XML configuration and policies:
+  * `SA-SpikeArrest.xml`: Halts runaway agent recursion with HTTP 429.
+  * `Extract-MCP-Method.xml`: Extracts JSON-RPC method routing.
+  * `AM-Return-Tools-List.xml`: Dynamic MCP schema discovery.
+  * `AM-Execute-Customer-Lookup.xml`: Governed enterprise tool response.
+  * `policies/optional_llm_policies/`: Advanced modular policies for LLM token quotas, response caching, context trimming, and API keys.
+* `deploy_to_apigee.sh`: One-click Bash deployment script utilizing Apigee Management APIs.
+* `demo_runner.py`: Python test runner validating discovery, execution, and Spike Arrest throttling.
+* `adk_agent.py`: Reference Google Agent Development Kit (ADK) agent configured with the governed MCP tool.
 
 ---
 
-## Hands-On Exercise
+## Quickstart: Hands-On Exercise
+
+### Prerequisites
+1. Copy `.env.example` to `.env` or set your target Apigee host:
+   ```bash
+   export APIGEE_HOST="<YOUR_APIGEE_HOSTNAME_OR_IP>"
+   # or
+   export APIGEE_MCP_URL="https://<YOUR_APIGEE_HOSTNAME_OR_IP>/v1/mcp"
+   ```
 
 ### Step 1: Verify Discovery (`tools/list`)
-Query the Apigee MCP endpoint to discover registered tools:
+Query the Apigee MCP endpoint to discover available tools:
 
 ```bash
-curl -X POST https://136.69.97.200.nip.io/v1/mcp \
+curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
 ```
@@ -129,7 +144,7 @@ Expected Response:
 Invoke the governed enterprise tool through Apigee:
 
 ```bash
-curl -X POST https://136.69.97.200.nip.io/v1/mcp \
+curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",
@@ -151,7 +166,7 @@ Expected Response:
     "content": [
       {
         "type": "text",
-        "text": "{\"customer_id\": \"CUST-9921\", \"status\": \"ACTIVE\", \"tier\": \"PLATINUM\", \"verified_by\": \"APIGEE_PRE_PROD\"}"
+        "text": "{\"customer_id\": \"CUST-9921\", \"status\": \"ACTIVE\", \"tier\": \"PLATINUM\", \"verified_by\": \"APIGEE_ENTERPRISE_GATEWAY\"}"
       }
     ]
   }
@@ -172,13 +187,28 @@ policies.ratelimit.SpikeArrestViolation: Spike arrest violation. Allowed rate : 
 
 ---
 
-## Deploying to Your Own Apigee Environment
+## Advanced LLM & Agent Governance Policies
 
-To deploy the bundle to your Google Cloud project:
+This starter package includes ready-to-use advanced policies in `advent_day20_apiproxy/policies/optional_llm_policies/`:
+
+1. **`LLM-Token-Quota.xml` (Token Rate Limiting):**
+   * Enforces rate limits based on estimated LLM token volume or request count, preventing agents from consuming downstream LLM quotas.
+2. **`RC-Tool-Response-Cache.xml` (Tool Response Caching):**
+   * Caches idempotent MCP tool invocations (such as product lookups or account status checks) at the Apigee edge, saving latency and downstream inference cost.
+3. **`EV-Trim-Context-Payload.xml` (Context Window Optimization):**
+   * Uses `ExtractVariables` to strip bulky 50+ field enterprise ERP payloads down to only the essential fields needed by the LLM, reducing prompt bloat and hallucination risk.
+4. **`VAK-Verify-API-Key.xml` (Client Agent Authentication):**
+   * Verifies API keys issued to calling agent applications or developers before allowing tool execution.
+
+---
+
+## Deploying to Your Google Cloud Project
+
+To deploy the starter bundle to your Apigee organization:
 
 ```bash
 export PROJECT_ID="<your-gcp-project-id>"
-export ENV_NAME="<your-apigee-env-name>"
+export ENV_NAME="<your-apigee-environment>"  # e.g., dev, eval, or prod
 
 chmod +x deploy_to_apigee.sh
 ./deploy_to_apigee.sh

@@ -2,17 +2,31 @@
 
 Demonstrates how an enterprise agent built with Google Agent Development Kit (ADK)
 interacts with Apigee MCP tools routed through Agent Gateway.
+
+Configuration:
+  export APIGEE_HOST="your-apigee-host.example.com"
+  export AGENT_GATEWAY_ENDPOINT="http://agent-egress-gateway.internal:8080"
 """
 
 import os
 import requests
 
+# Load optional local .env if present
+_env_path = os.path.join(os.path.dirname(__file__), ".env")
+if os.path.exists(_env_path):
+  with open(_env_path) as _f:
+    for _line in _f:
+      if "=" in _line and not _line.strip().startswith("#"):
+        _k, _v = _line.strip().split("=", 1)
+        os.environ.setdefault(_k.strip(), _v.strip())
+
 MODEL = "gemini-3.5-flash"
+APIGEE_HOST = os.getenv("APIGEE_HOST", "api.enterprise.example.com")
+APIGEE_MCP_URL = os.getenv(
+    "APIGEE_MCP_URL", f"https://{APIGEE_HOST}/v1/mcp"
+)
 AGENT_GATEWAY_EGRESS = os.getenv(
     "AGENT_GATEWAY_ENDPOINT", "http://agent-egress-gateway.internal:8080"
-)
-APIGEE_MCP_URL = os.getenv(
-    "APIGEE_MCP_URL", "https://136.69.97.200.nip.io/v1/mcp"
 )
 
 
@@ -85,6 +99,11 @@ except ImportError:
 
 
 if __name__ == "__main__":
+  print(f"Target Apigee Endpoint: {APIGEE_MCP_URL}")
   print("Testing lookup_customer_account tool invocation:")
-  res = lookup_customer_account("CUST-9921")
-  print("Response:", res)
+  try:
+    res = lookup_customer_account("CUST-9921")
+    print("Response:", res)
+  except Exception as e:
+    print(f"Tool invocation encountered: {e}")
+    print("Set export APIGEE_HOST='<YOUR_APIGEE_HOST>' to target a live gateway.")
