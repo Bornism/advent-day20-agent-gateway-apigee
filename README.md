@@ -1,66 +1,69 @@
-# Day 20: Apigee vs. Agent Gateway: The Tale of Two Gateways
+# Day 20: Apigee vs. Agent Gateway (The Tale of Two Gateways)
 
-> **Advent of Agents (Season 3)** · **Day 20**  
-> **Authors:** Christopher Duncan & Elliott Abraham  
-> **Tags:** `AGENT GATEWAY` `APIGEE` `MCP` `SECURITY` `DEFENSE IN DEPTH`  
-> **Starter Kit:** Production-ready Apigee MCP Proxy & Test Runner  
-> **Demo Video:** *[5-Minute Demo Video Recording Scheduled - 9:00 AM]*
-
----
-
-## Overview
-
-When organizations introduce autonomous AI agents into production environments, platform and security teams face an immediate architectural question:
-
-> *"We already run all corporate traffic through Apigee. Why do we need Agent Gateway?"*
-
-Traditional API gateways are optimized for **North-South ingress traffic**: securing published endpoints against external callers, applying API key quotas, and routing requests to internal microservices. However, autonomous AI agents operate on an **outbound Egress paradigm**: agents reason non-deterministically and make dynamic runtime calls to external APIs, SaaS endpoints, and Model Context Protocol (MCP) servers.
-
-Relying solely on Apigee leaves the agent's outbound execution loop unmonitored and vulnerable to indirect prompt injection or unauthorized egress. Relying solely on Agent Gateway leaves backend systems vulnerable to runaway agent loops, schema bloat, and protocol mismatches. 
-
-Combining both delivers complete **Defense-in-Depth**.
+**Advent of Agents — Season 3 (October 2026)**  
+**Authors:** Christopher Duncan & Elliott Abraham  
+**Tags:** `Agent Gateway`, `Apigee`, `MCP`, `Security`, `API Management`  
+**Video Demo:** *[5-minute demo video recording dropping tomorrow morning]*
 
 ---
 
-## For Existing Apigee Customers
+### The Question Every Enterprise Architect Asks
 
-If your organization already standardizes on Google Cloud Apigee:
+When teams start building production AI agents on Google Cloud, the first question from platform and security teams is almost always:
 
-1. **Keep Your Existing API Catalog**: You do not need to rewrite your backend services or replace existing Apigee proxies.
-2. **Use This Proxy as a Starter Kit**: You can optionally deploy the included `advent-day20-mcp-proxy.zip` starter bundle to instantly expose legacy enterprise REST, SOAP, or database backends as standardized, discoverable Model Context Protocol (MCP) tools.
-3. **Add Agent Gateway for Outbound Zero-Trust**: Place Agent Gateway in front of your autonomous agent execution environments (Vertex AI Reasoning Engines, Cloud Run, GKE) to enforce deny-by-default egress, SPIFFE workload attestation, and Model Armor safety filters before outbound agent requests reach Apigee.
+> *"We already run Apigee across our entire enterprise. Why do we need Agent Gateway? Aren't they doing the same thing?"*
 
----
+Here is the quick answer: **they protect completely different traffic directions.**
 
-## Architectural Comparison: Ingress vs. Egress
+* **Apigee handles Ingress (Inbound / North-South):** It guards your internal databases, ERPs, and microservices against callers. It verifies API keys, enforces rate limits, transforms legacy formats, and presents clean APIs.
+* **Agent Gateway handles Egress (Outbound):** Autonomous agents do not just receive requests; they make unpredictable, non-deterministic outbound calls to external tools and APIs. Agent Gateway sits directly in front of the agent runtime (Vertex AI, Cloud Run, or GKE) to enforce deny-by-default egress, check SPIFFE agent identity, and scan payloads with Model Armor before an agent reaches out to the world.
 
-| Capability | Apigee API Gateway | Google Cloud Agent Gateway | Combined Synergy |
-| :--- | :--- | :--- | :--- |
-| **Primary Domain** | Ingress / Enterprise API Backbone | Egress / Autonomous Agent Boundary | Full perimeter governance |
-| **Traffic Direction** | North-South (Clients to Backend APIs) | East-West & Outbound (Agents to Tools) | Comprehensive boundary control |
-| **Caller Identity** | Consumer Apps, API Keys, OAuth 2.0 | Cryptographic SPIFFE Workload IDs | App authentication + Agent identity |
-| **Security Scanning** | WAF, DDoS, Schema Validation | Model Armor (Prompt Injection / Jailbreak) | Protocol validation + LLM content safety |
-| **Loop & Rate Protection** | Spike Arrest & Quotas (HTTP 429) | Deny-by-Default Egress & Tool Whitelists | Circuit breaking for runaway agent loops |
-| **Context Window Control** | Strips heavy XML/JSON payloads to clean MCP | Passes filtered tool context to model | Optimal token consumption & cost control |
+If you only use Apigee, your agent's outbound calls are unmonitored and vulnerable to prompt injection or rogue egress. If you only use Agent Gateway, your internal backends are exposed to runaway agent loops and context bloat. 
+
+Using both gives you full perimeter protection: Agent Gateway controls what the agent is allowed to call, and Apigee controls how enterprise tools and backends are consumed.
 
 ---
 
-## Architecture Flow
+### For Existing Apigee Teams: How to Use This Repo
+
+If you already use Apigee in your organization, you do not need to replace anything or write custom MCP servers from scratch. 
+
+You can use the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) as a **starter kit**:
+1. Import and deploy the proxy into your existing Apigee environment.
+2. It translates standard Model Context Protocol JSON-RPC requests (`tools/list` and `tools/call`) into your backend API calls.
+3. It uses Apigee's built-in **Spike Arrest** policy to act as a circuit breaker. If an agent gets stuck in a recursive loop or starts rapid-firing requests, Apigee immediately throttles it with `HTTP 429` before your SAP, Salesforce, or BigQuery systems feel the impact.
+
+---
+
+### Ingress vs. Egress at a Glance
+
+| Architectural Layer | Apigee API Gateway | Google Cloud Agent Gateway |
+| :--- | :--- | :--- |
+| **Where it sits** | In front of enterprise backends and databases | Right at the agent runtime boundary (VPC egress) |
+| **Traffic direction** | Ingress (calls coming into your services) | Egress (calls initiated by autonomous agents) |
+| **Identity model** | API keys, OAuth 2.0, developer apps | Ephemeral cryptographic SPIFFE workload identity |
+| **Security focus** | WAF, DDoS protection, schema validation | Model Armor (prompt injection and jailbreak screening) |
+| **Rate protection** | Spike arrest and quotas (stops backend exhaustion) | Deny-by-default allowlists (stops unauthorized tool reach) |
+| **Context efficiency** | Strips massive JSON/XML responses down to clean tool output | Passes clean, verified tool results back to the LLM |
+
+---
+
+### How the Request Flows
 
 ```
 +-------------------------------------------------------------------------------+
 |                       AUTONOMOUS AGENT RUNTIME BOUNDARY                       |
 |                                                                               |
 |  +--------------------+             +--------------------------------------+  |
-|  |  AI Agent Runtime  |             |        AGENT GATEWAY (Egress)        |  |
-|  | (Gemini / Vertex)  |  MCP Call   |                                      |  |
-|  |                    +------------>|  [1] Validate SPIFFE Identity        |  |
-|  | [SPIFFE ID]        |             |  [2] Check Agent Registry Allowlist  |  |
-|  +--------------------+             |  [3] Service Ext: Model Armor Scan   |  |
-|                                     |  [4] Enforce Deny-by-Default Policy  |  |
+|  |   Gemini Agent     |             |        AGENT GATEWAY (Egress)        |  |
+|  | (Vertex / ADK)     |  MCP Call   |                                      |  |
+|  |                    +------------>|  [1] Validate SPIFFE workload ID     |  |
+|  | [SPIFFE ID]        |             |  [2] Check Agent Registry allowlist  |  |
+|  +--------------------+             |  [3] Scan prompt with Model Armor    |  |
+|                                     |  [4] Enforce deny-by-default rule    |  |
 |                                     +-------------------+------------------+  |
 +---------------------------------------------------------|---------------------+
-                                                          | Permitted Egress
+                                                          | Allowed tool call
                                                           v (HTTPS / mTLS)
 +-------------------------------------------------------------------------------+
 |                         ENTERPRISE API INFRASTRUCTURE                         |
@@ -68,13 +71,13 @@ If your organization already standardizes on Google Cloud Apigee:
 |  +-------------------------------------------------------------------------+  |
 |  |                         APIGEE API GATEWAY                              |  |
 |  |                                                                         |  |
-|  |  [A] Ingress TLS & IP Whitelist Termination                             |  |
-|  |  [B] Verify API Key & Consumer App Entitlements                         |  |
-|  |  [C] Spike Arrest & Rate Quotas (Stop Infinite Loops)                   |  |
-|  |  [D] Context Optimization: ExtractVariables / Strip Heavy Payload XML   |  |
+|  |  [A] Ingress TLS termination                                            |  |
+|  |  [B] Verify API Key & calling app entitlements                          |  |
+|  |  [C] Spike Arrest: halt recursive agent loops (HTTP 429)                |  |
+|  |  [D] ExtractVariables: strip heavy 50-field payloads to clean JSON      |  |
 |  +-------------------------------------+-----------------------------------+  |
 +----------------------------------------|--------------------------------------+
-                                         | Mediated Call
+                                         | Clean tool invocation
                                          v
                +---------------------------------------------------+
                |  Enterprise Backends: SAP / Salesforce / BigQuery |
@@ -83,34 +86,34 @@ If your organization already standardizes on Google Cloud Apigee:
 
 ---
 
-## Repository Contents
+### What Is in This Repo
 
-* `README.md`: Architecture guide, decision matrix, and deployment instructions.
-* `.env.example`: Environment variable template for configuring target Apigee endpoints and project IDs.
-* `advent-day20-mcp-proxy.zip`: Pre-packaged Apigee API Proxy starter bundle implementing JSON-RPC MCP discovery and execution.
-* `advent_day20_apiproxy/`: Source XML configuration and policies:
-  * `SA-SpikeArrest.xml`: Halts runaway agent recursion with HTTP 429.
-  * `Extract-MCP-Method.xml`: Extracts JSON-RPC method routing.
-  * `AM-Return-Tools-List.xml`: Dynamic MCP schema discovery.
-  * `AM-Execute-Customer-Lookup.xml`: Governed enterprise tool response.
-  * `policies/optional_llm_policies/`: Advanced modular policies for LLM token quotas, response caching, context trimming, and API keys.
-* `deploy_to_apigee.sh`: One-click Bash deployment script utilizing Apigee Management APIs.
-* `demo_runner.py`: Python test runner validating discovery, execution, and Spike Arrest throttling.
+* `advent-day20-mcp-proxy.zip`: Pre-built Apigee proxy bundle ready to import and deploy.
+* `advent_day20_apiproxy/`: Unpacked XML proxy definition and policy files:
+  * `SA-SpikeArrest.xml`: Throttles burst calls (set to 10 requests per minute for this kata).
+  * `Extract-MCP-Method.xml`: Extracts the JSON-RPC method (`tools/list` vs. `tools/call`).
+  * `AM-Return-Tools-List.xml`: Returns the MCP tool schema.
+  * `AM-Execute-Customer-Lookup.xml`: Returns the customer account record.
+  * `policies/optional_llm_policies/`: Ready-to-use policies for LLM Token Quotas, Response Caching, Context Trimming, and API Key verification.
+* `demo_runner.py`: A simple test runner that verifies tool discovery, calls the tool, and triggers Spike Arrest with a burst test.
+* `deploy_to_apigee.sh`: Bash script to deploy the proxy bundle using Apigee Management APIs.
+* `.env.example`: Starter environment file for configuring your Apigee host and GCP project.
 
 ---
 
-## Quickstart: Hands-On Exercise
+### Hands-On Kata: Running the Demo
 
-### Prerequisites
-1. Copy `.env.example` to `.env` or set your target Apigee host:
-   ```bash
-   export APIGEE_HOST="<YOUR_APIGEE_HOSTNAME_OR_IP>"
-   # or
-   export APIGEE_MCP_URL="https://<YOUR_APIGEE_HOSTNAME_OR_IP>/v1/mcp"
-   ```
+#### 1. Setup your environment
+Copy `.env.example` to `.env` (or set environment variables in your shell):
 
-### Step 1: Verify Discovery (`tools/list`)
-Query the Apigee MCP endpoint to discover available tools:
+```bash
+export APIGEE_HOST="<your-apigee-host-or-ip>"
+# or
+export APIGEE_MCP_URL="https://<your-apigee-host-or-ip>/v1/mcp"
+```
+
+#### 2. Test MCP Tool Discovery (`tools/list`)
+Ask Apigee what tools are available over standard Model Context Protocol:
 
 ```bash
 curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
@@ -118,7 +121,7 @@ curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
 ```
 
-Expected Response:
+Apigee responds with the tool schema:
 ```json
 {
   "jsonrpc": "2.0",
@@ -139,8 +142,8 @@ Expected Response:
 }
 ```
 
-### Step 2: Execute Tool (`tools/call`)
-Invoke the governed enterprise tool through Apigee:
+#### 3. Test Tool Execution (`tools/call`)
+Now invoke the tool through Apigee:
 
 ```bash
 curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
@@ -156,7 +159,7 @@ curl -X POST "${APIGEE_MCP_URL:-https://${APIGEE_HOST}/v1/mcp}" \
   }'
 ```
 
-Expected Response:
+Apigee returns the customer record:
 ```json
 {
   "jsonrpc": "2.0",
@@ -172,42 +175,32 @@ Expected Response:
 }
 ```
 
-### Step 3: Test Spike Arrest (Runaway Agent Loop Protection)
-Run the automated test runner to trigger the `SA-SpikeArrest` policy:
+#### 4. Test Runaway Loop Protection (Spike Arrest)
+Run the Python test runner to verify everything end-to-end, including rapid successive requests:
 
 ```bash
 python3 demo_runner.py
 ```
 
-Notice that rapid successive requests receive `HTTP 429 Too Many Requests`:
+Because the proxy enforces a `10pm` Spike Arrest policy (1 request every 6 seconds), rapid burst calls immediately trigger `HTTP 429 Too Many Requests`:
+
+```text
+Request 1: HTTP 200
+Request 2: HTTP 429 -> SpikeArrestViolation intercepted by Apigee!
+Request 3: HTTP 429 -> SpikeArrestViolation intercepted by Apigee!
 ```
-policies.ratelimit.SpikeArrestViolation: Spike arrest violation. Allowed rate : MessageRate{messagesPerPeriod=10, periodInMicroseconds=60000000}
-```
+
+This prevents a looping or misconfigured AI agent from hammering your backend databases.
 
 ---
 
-## Advanced LLM & Agent Governance Policies
+### Deploying the Proxy to Your Own GCP Project
 
-This starter package includes ready-to-use advanced policies in `advent_day20_apiproxy/policies/optional_llm_policies/`:
-
-1. **`LLM-Token-Quota.xml` (Token Rate Limiting):**
-   * Enforces rate limits based on estimated LLM token volume or request count, preventing agents from consuming downstream LLM quotas.
-2. **`RC-Tool-Response-Cache.xml` (Tool Response Caching):**
-   * Caches idempotent MCP tool invocations (such as product lookups or account status checks) at the Apigee edge, saving latency and downstream inference cost.
-3. **`EV-Trim-Context-Payload.xml` (Context Window Optimization):**
-   * Uses `ExtractVariables` to strip bulky 50+ field enterprise ERP payloads down to only the essential fields needed by the LLM, reducing prompt bloat and hallucination risk.
-4. **`VAK-Verify-API-Key.xml` (Client Agent Authentication):**
-   * Verifies API keys issued to calling agent applications or developers before allowing tool execution.
-
----
-
-## Deploying to Your Google Cloud Project
-
-To deploy the starter bundle to your Apigee organization:
+If you want to deploy this proxy bundle directly to your own Apigee organization:
 
 ```bash
 export PROJECT_ID="<your-gcp-project-id>"
-export ENV_NAME="<your-apigee-environment>"  # e.g., dev, eval, or prod
+export ENV_NAME="<your-apigee-env>"  # e.g., dev, eval, or prod
 
 chmod +x deploy_to_apigee.sh
 ./deploy_to_apigee.sh
@@ -215,8 +208,19 @@ chmod +x deploy_to_apigee.sh
 
 ---
 
-## Summary
+### Optional Starter Policies for LLM Governance
 
-* **Use Agent Gateway** at the agent runtime boundary for zero-trust outbound tool control, SPIFFE identity attestation, and Model Armor safety scanning.
-* **Use Apigee** at the enterprise API boundary for legacy protocol translation, context optimization, credential verification, and spike arrest.
-* **Together**, they provide end-to-end security and governance for production agentic AI architectures.
+Inside `advent_day20_apiproxy/policies/optional_llm_policies/`, we have included 4 additional policies you can attach to your proxy flows as your architecture matures:
+
+* **`LLM-Token-Quota.xml`:** Tracks token counts using Apigee's native `LLMTokenQuota` policy to enforce Tokens Per Minute (TPM) limits per agent.
+* **`RC-Tool-Response-Cache.xml`:** Caches tool lookups at the Apigee edge so repetitive queries do not cost extra latency or backend calls.
+* **`EV-Trim-Context-Payload.xml`:** Extracts only the necessary fields from noisy 50+ field enterprise responses before returning them to the LLM context window.
+* **`VAK-Verify-API-Key.xml`:** Enforces standard API key authentication for client applications calling the tool.
+
+---
+
+### Wrap-Up
+
+* Use **Agent Gateway** on outbound agent traffic to stop prompt injection, attest agent identity, and block unauthorized network egress.
+* Use **Apigee** on inbound tool traffic to convert enterprise APIs into MCP tools, protect backends with spike arrest, and keep payloads lean.
+* Put them together for a zero-trust, production-ready AI agent architecture.
