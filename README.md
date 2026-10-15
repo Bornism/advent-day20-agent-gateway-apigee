@@ -69,21 +69,54 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 
 ---
 
-### Hands-On Kata: Running the Demo
+### Hands-On Kata: Setup & Verification
 
-#### 1. Setup your environment
-Clone the repository and copy `.env.example` over to `.env`:
+> **Testing against an existing Apigee gateway?** Skip ahead to [Phase 2: Run the Verification Demo](#phase-2-run-the-verification-demo)!
+
+---
+
+#### Phase 1: Deploy Both Gateways
+
+> **A quick heads-up on Apigee provisioning:**  
+> If you already have an active Apigee organization, importing and deploying this proxy takes about 30 seconds.  
+> If you are setting up Apigee for the first time in a brand-new GCP project, initial runtime provisioning typically takes **30 to 45 minutes** while Google Cloud establishes VPC peering and runtime infrastructure. You can follow the [Official Apigee Provisioning Guide](https://cloud.google.com/apigee/docs/api-platform/get-started/provisioning-overview) in the background, or test the Kata commands against an existing gateway endpoint right away!
+
+##### 1. Import and Deploy the Apigee MCP Proxy
+Upload the pre-packaged bundle (`advent-day20-mcp-proxy.zip`) directly to your Apigee organization:
 
 ```bash
-git clone https://github.com/Bornism/advent-day20-agent-gateway-apigee.git
-cd advent-day20-agent-gateway-apigee
+TOKEN=$(gcloud auth print-access-token)
 
-export APIGEE_HOST="<your-apigee-host-or-ip>"
-# or
-export APIGEE_MCP_URL="https://<your-apigee-host-or-ip>/v1/mcp"
+# Import bundle
+curl -X POST -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/octet-stream" \
+  --data-binary "@advent-day20-mcp-proxy.zip" \
+  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/apis?action=import&name=advent-day20-mcp-proxy"
+
+# Deploy revision 1 to your environment
+curl -X POST -H "Authorization: Bearer ${TOKEN}" \
+  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/environments/${ENV_NAME}/apis/advent-day20-mcp-proxy/revisions/1/deployments?override=true"
 ```
 
-#### 2. Agent Gateway: Zero-Trust IAM Egress Policy (`agent_gateway_policy.json`)
+##### 2. Register Apigee Ingress & Deploy Egress Agent Gateway
+Configure Agent Gateway to recognize the Apigee MCP endpoint and enforce outbound zero-trust routing:
+
+```bash
+# Register Apigee as an approved tool in Agent Registry
+gcloud alpha agent-registry services create apigee-enterprise-mcp \
+    --project="${PROJECT_ID}" \
+    --location="global" \
+    --display-name="Apigee Enterprise MCP Gateway" \
+    --endpoint="https://${APIGEE_HOST}/v1/mcp"
+
+# Create the Egress Agent Gateway with Agent-to-Anywhere zero-trust routing
+gcloud alpha network-services agent-gateways create advent-egress-gw \
+    --project="${PROJECT_ID}" \
+    --location="us-central1" \
+    --type="AGENT_TO_ANYWHERE" \
+    --protocol="MCP"
+```
+
+##### 3. Apply the Agent Gateway Zero-Trust Egress Policy (`agent_gateway_policy.json`)
 Agent Gateway inspects all outbound agent traffic. Because it denies outbound connections by default, you configure an IAM Unified Access Policy that blocks rogue external endpoints at the network perimeter while permitting egress to approved enterprise services:
 
 ```json
@@ -123,26 +156,23 @@ Agent Gateway inspects all outbound agent traffic. Because it denies outbound co
 }
 ```
 
-#### 3. Agent Gateway: Register Apigee Ingress in Agent Registry
-Tell Agent Gateway where your enterprise Apigee endpoint lives:
+---
+
+#### Phase 2: Run the Verification Demo
+
+##### 1. Setup your environment
+Clone the repository and copy `.env.example` over to `.env`:
 
 ```bash
-# Register the Apigee Ingress endpoint in Agent Registry
-gcloud alpha agent-registry services create apigee-enterprise-mcp \
-    --project="${PROJECT_ID}" \
-    --location="global" \
-    --display-name="Apigee Enterprise MCP Gateway" \
-    --endpoint="https://${APIGEE_HOST}/v1/mcp"
+git clone https://github.com/Bornism/advent-day20-agent-gateway-apigee.git
+cd advent-day20-agent-gateway-apigee
 
-# Create the Egress Agent Gateway with Agent-to-Anywhere zero-trust routing
-gcloud alpha network-services agent-gateways create advent-egress-gw \
-    --project="${PROJECT_ID}" \
-    --location="us-central1" \
-    --type="AGENT_TO_ANYWHERE" \
-    --protocol="MCP"
+export APIGEE_HOST="<your-apigee-host-or-ip>"
+# or
+export APIGEE_MCP_URL="https://<your-apigee-host-or-ip>/v1/mcp"
 ```
 
-#### 4. Apigee: Test MCP Tool Discovery (`tools/list`)
+##### 2. Test MCP Tool Discovery (`tools/list`)
 Ask Apigee what tools are available over standard Model Context Protocol:
 
 ```bash
@@ -172,7 +202,7 @@ Apigee returns the MCP tool schema:
 }
 ```
 
-#### 5. Apigee: Test Tool Execution (`tools/call`)
+##### 3. Test Tool Execution (`tools/call`)
 Now call the tool through Apigee:
 
 ```bash
@@ -205,7 +235,7 @@ Apigee sends back the customer record:
 }
 ```
 
-#### 6. Apigee: Test Runaway Loop Protection (Spike Arrest)
+##### 4. Test Runaway Loop Protection (Spike Arrest)
 Run the Python test runner to verify everything across both gateways, including the Agent Gateway policy check and rapid burst calls:
 
 ```bash
@@ -221,50 +251,6 @@ Request 3: HTTP 429 -> SpikeArrestViolation intercepted by Apigee!
 ```
 
 That's how you keep a looping or hallucinating agent from bringing down your backend databases.
-
----
-
-### Deploying Both Gateways to Your Own GCP Project
-
-> **A quick heads-up on Apigee provisioning:**  
-> If you already have an active Apigee organization, importing and deploying this proxy takes about 30 seconds.  
-> If you are setting up Apigee for the first time in a brand-new GCP project, initial runtime provisioning typically takes **30 to 45 minutes** while Google Cloud establishes VPC peering and runtime infrastructure. You can follow the [Official Apigee Provisioning Guide](https://cloud.google.com/apigee/docs/api-platform/get-started/provisioning-overview) in the background, or test the Kata commands against an existing gateway endpoint right away!
-
-If you want to spin up both gateways in your own Google Cloud project:
-
-#### 1. Import and Deploy the Apigee MCP Proxy
-Upload the bundle directly to your Apigee organization:
-
-```bash
-TOKEN=$(gcloud auth print-access-token)
-
-# Import bundle
-curl -X POST -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/octet-stream" \
-  --data-binary "@advent-day20-mcp-proxy.zip" \
-  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/apis?action=import&name=advent-day20-mcp-proxy"
-
-# Deploy revision 1 to your environment
-curl -X POST -H "Authorization: Bearer ${TOKEN}" \
-  "https://apigee.googleapis.com/v1/organizations/${PROJECT_ID}/environments/${ENV_NAME}/apis/advent-day20-mcp-proxy/revisions/1/deployments?override=true"
-```
-
-#### 2. Create the Agent Gateway Egress Boundary
-Create your outbound gateway and register Apigee in Agent Registry:
-
-```bash
-# Create the Egress Agent Gateway
-gcloud alpha network-services agent-gateways create advent-egress-gw \
-    --project="${PROJECT_ID}" \
-    --location="us-central1" \
-    --type="AGENT_TO_ANYWHERE" \
-    --protocol="MCP"
-
-# Register Apigee as an approved tool in Agent Registry
-gcloud alpha agent-registry services create apigee-enterprise-mcp \
-    --project="${PROJECT_ID}" \
-    --location="global" \
-    --endpoint="https://${APIGEE_HOST}/v1/mcp"
-```
 
 ---
 
