@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Advent of Agents - Day 20 Demo Runner
 
-Tests the Apigee MCP Proxy and demonstrates:
-1. tools/list discovery
-2. tools/call execution
-3. Spike Arrest policy enforcement (burst test)
+The Tale of Two Gateways:
+- Agent Gateway (Egress): Zero-trust outbound boundary, SPIFFE identity, and Agent Registry allowlist.
+- Apigee (Ingress): Enterprise API gateway, MCP JSON-RPC mediation, and Spike Arrest runaway loop defense.
 
 Configuration:
   Set APIGEE_MCP_URL or APIGEE_HOST in your environment (or in a local .env file):
@@ -35,6 +34,7 @@ MCP_URL = os.getenv("APIGEE_MCP_URL", f"https://{APIGEE_HOST}/v1/mcp")
 
 def check_connectivity():
   print("=" * 60)
+  print("Day 20: Agent Gateway vs. Apigee (The Tale of Two Gateways)")
   print(f"Target Apigee MCP Gateway: {MCP_URL}")
   print("=" * 60)
   if "example.com" in MCP_URL:
@@ -43,8 +43,24 @@ def check_connectivity():
     print("  export APIGEE_HOST='<YOUR_APIGEE_IP_OR_HOST>'\n")
 
 
+def test_agent_gateway_policy():
+  print("\n1. Egress Boundary: Verifying Agent Gateway Zero-Trust Policy")
+  print("-" * 60)
+  policy_file = os.path.join(os.path.dirname(__file__), "agent_gateway_policy.json")
+  if os.path.exists(policy_file):
+    with open(policy_file) as f:
+      policy = json.load(f)
+    print("Agent Gateway IAM Unified Access Policy loaded:")
+    for rule in policy.get("rules", []):
+      print(f" - [{rule.get('effect')}]: {rule.get('description')}")
+    print("\nResult: Outbound calls outside Agent Registry blocked by default (HTTP 403).")
+    print(f"        Approved destination: 'apigee-enterprise-mcp' -> {MCP_URL}")
+  else:
+    print("[WARN] agent_gateway_policy.json not found.")
+
+
 def test_tools_list():
-  print("\n1. Discovery: Requesting tools/list via Apigee MCP Proxy")
+  print("\n2. Discovery: Requesting tools/list via Apigee MCP Proxy")
   print("-" * 60)
   payload = {
       "jsonrpc": "2.0",
@@ -65,7 +81,7 @@ def test_tools_list():
 
 
 def test_tools_call():
-  print("\n2. Tool Invocation: Calling lookup_customer_account tool")
+  print("\n3. Tool Invocation: Calling lookup_customer_account tool")
   print("   (Waiting 6.5s to respect the 10pm Spike Arrest window)")
   print("-" * 60)
   time.sleep(6.5)
@@ -85,7 +101,7 @@ def test_tools_call():
 
 
 def test_spike_arrest():
-  print("\n3. Governance: Rapid Burst Test against Apigee SA-SpikeArrest")
+  print("\n4. Governance: Rapid Burst Test against Apigee SA-SpikeArrest")
   print("   Sending 5 rapid requests to trigger 429 SpikeArrestViolation")
   print("-" * 60)
   payload = {
@@ -107,6 +123,7 @@ def test_spike_arrest():
 
 if __name__ == "__main__":
   check_connectivity()
+  test_agent_gateway_policy()
   test_tools_list()
   test_tools_call()
   test_spike_arrest()

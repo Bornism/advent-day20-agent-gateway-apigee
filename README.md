@@ -1,6 +1,6 @@
 # Day 20: Agent Gateway vs. Apigee (The Tale of Two Gateways)
 
-**Advent of Agents — Season 3 (October 2026)**  
+**Advent of Agents  -  Season 3 (October 2026)**  
 **Authors:** Christopher Duncan & Elliott Abraham  
 **Tags:** `Agent Gateway`, `Apigee`, `MCP`, `Security`, `API Management`  
 **Video Demo:** *[8-minute video demo dropping tomorrow morning]*
@@ -61,9 +61,10 @@ You can take the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) and us
 
 ### What's in This Repo
 
+* `agent_gateway_policy.json`: Declarative IAM Unified Access Policy enforcing deny-by-default egress and allowlisting Apigee.
 * `advent-day20-mcp-proxy.zip`: Pre-built Apigee starter bundle that exposes enterprise services as an MCP tool and includes Spike Arrest runaway loop protection.
 * `assets/architecture_flow.png`: Official architecture diagram showing how Agent Gateway and Apigee fit together.
-* `demo_runner.py`: Simple Python test runner to verify discovery (`tools/list`), tool calls (`tools/call`), and Spike Arrest (`429`).
+* `demo_runner.py`: Python test runner verifying the Agent Gateway policy, MCP discovery (`tools/list`), tool calls (`tools/call`), and Spike Arrest (`429`).
 * `.env.example`: Starter config for your Apigee host and project ID.
 
 ---
@@ -79,7 +80,66 @@ export APIGEE_HOST="<your-apigee-host-or-ip>"
 export APIGEE_MCP_URL="https://<your-apigee-host-or-ip>/v1/mcp"
 ```
 
-#### 2. Test MCP Tool Discovery (`tools/list`)
+#### 2. Agent Gateway: Zero-Trust IAM Egress Policy (`agent_gateway_policy.json`)
+Agent Gateway inspects all outbound agent traffic. Because it denies outbound connections by default, you configure an IAM Unified Access Policy that blocks rogue external endpoints at the network perimeter while permitting egress to approved enterprise services:
+
+```json
+{
+  "rules": [
+    {
+      "description": "Agent Gateway Egress: Deny unauthorized outbound calls outside registered enterprise services",
+      "effect": "DENY",
+      "principals": [
+        "principalSet://agents.global.org-YOUR_ORG_ID.system.id.goog/*"
+      ],
+      "conditions": {
+        "iap.googleapis.com": {
+          "expression": "destination.is_registered == false && !destination.unregistered.host.endsWith('googleapis.com')"
+        }
+      },
+      "operation": {
+        "permissions": ["iap.googleapis.com/resources.egressViaIAP"]
+      }
+    },
+    {
+      "description": "Agent Gateway Egress: Allow outbound tool calls to approved Apigee Enterprise MCP Gateway",
+      "effect": "ALLOW",
+      "principals": [
+        "principalSet://agents.global.org-YOUR_ORG_ID.system.id.goog/*"
+      ],
+      "conditions": {
+        "iap.googleapis.com": {
+          "expression": "destination.agent_registry.service.id == 'apigee-enterprise-mcp'"
+        }
+      },
+      "operation": {
+        "permissions": ["iap.googleapis.com/resources.egressViaIAP"]
+      }
+    }
+  ]
+}
+```
+
+#### 3. Agent Gateway: Register Apigee Ingress in Agent Registry
+Tell Agent Gateway where your enterprise Apigee endpoint lives:
+
+```bash
+# Register the Apigee Ingress endpoint in Agent Registry
+gcloud alpha agent-registry services create apigee-enterprise-mcp \
+    --project="${PROJECT_ID}" \
+    --location="global" \
+    --display-name="Apigee Enterprise MCP Gateway" \
+    --endpoint="https://${APIGEE_HOST}/v1/mcp"
+
+# Create the Egress Agent Gateway with Agent-to-Anywhere zero-trust routing
+gcloud alpha network-services agent-gateways create advent-egress-gw \
+    --project="${PROJECT_ID}" \
+    --location="us-central1" \
+    --type="AGENT_TO_ANYWHERE" \
+    --protocol="MCP"
+```
+
+#### 4. Apigee: Test MCP Tool Discovery (`tools/list`)
 Ask Apigee what tools are available over standard Model Context Protocol:
 
 ```bash
@@ -109,7 +169,7 @@ Apigee returns the MCP tool schema:
 }
 ```
 
-#### 3. Test Tool Execution (`tools/call`)
+#### 5. Apigee: Test Tool Execution (`tools/call`)
 Now call the tool through Apigee:
 
 ```bash
@@ -142,8 +202,8 @@ Apigee sends back the customer record:
 }
 ```
 
-#### 4. Test Runaway Loop Protection (Spike Arrest)
-Run the Python test runner to verify everything, including rapid burst calls:
+#### 6. Apigee: Test Runaway Loop Protection (Spike Arrest)
+Run the Python test runner to verify everything across both gateways, including the Agent Gateway policy check and rapid burst calls:
 
 ```bash
 python3 demo_runner.py

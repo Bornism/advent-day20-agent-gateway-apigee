@@ -1,0 +1,34 @@
+{
+  "rules": [
+    {
+      "description": "Agent Gateway Egress: Deny unauthorized outbound calls outside registered enterprise services",
+      "effect": "DENY",
+      "principals": [
+        "principalSet://agents.global.org-YOUR_ORG_ID.system.id.goog/*"
+      ],
+      "conditions": {
+        "iap.googleapis.com": {
+          "expression": "destination.is_registered == false && !destination.unregistered.host.endsWith('googleapis.com')"
+        }
+      },
+      "operation": {
+        "permissions": ["iap.googleapis.com/resources.egressViaIAP"]
+      }
+    },
+    {
+      "description": "Agent Gateway Egress: Allow outbound tool calls to approved Apigee Enterprise MCP Gateway",
+      "effect": "ALLOW",
+      "principals": [
+        "principalSet://agents.global.org-YOUR_ORG_ID.system.id.goog/*"
+      ],
+      "conditions": {
+        "iap.googleapis.com": {
+          "expression": "destination.agent_registry.service.id == 'apigee-enterprise-mcp'"
+        }
+      },
+      "operation": {
+        "permissions": ["iap.googleapis.com/resources.egressViaIAP"]
+      }
+    }
+  ]
+}
