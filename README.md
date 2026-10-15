@@ -1,4 +1,4 @@
-# Day 20: Apigee vs. Agent Gateway (The Tale of Two Gateways)
+# Day 20: Agent Gateway vs. Apigee (The Tale of Two Gateways)
 
 **Advent of Agents — Season 3 (October 2026)**  
 **Authors:** Christopher Duncan & Elliott Abraham  
