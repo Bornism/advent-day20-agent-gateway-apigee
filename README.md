@@ -50,6 +50,8 @@ You can use the proxy bundle in this repo (`advent-day20-mcp-proxy.zip`) as a **
 
 ### How the Request Flows
 
+![Architecture Flow](assets/architecture_flow.jpg)
+
 ```
 +-------------------------------------------------------------------------------+
 |                       AUTONOMOUS AGENT RUNTIME BOUNDARY                       |
